@@ -1769,7 +1769,7 @@ async def run_async_tests():
         test_04_vector_store_operations,
         test_05_llm_integration_and_response_generation,
         test_06_rag_pipeline_orchestration,
-        test_07_end_to_end_rag_workflow,
+        test_07_rag_query_processing_and_context_retrieval,
         test_08_error_handling_and_recovery,
         test_09_performance_optimization_and_monitoring,
         test_10_integration_and_production_readiness
