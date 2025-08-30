@@ -948,6 +948,7 @@ async def test_07_end_to_end_rag_workflow():
                             workflow_results['final_state']['memory_stats'] = memory_stats
                             
                             # Final validation
+                            workflow_results['performance_metrics']['total_workflow_time'] = time.time() - start_time
                             workflow_results['performance_metrics']['steps_completed'] = len(workflow_results['steps_completed'])
                             # Calculate success rate safely
                             total_steps = max(len(workflow_results['steps_completed']), 1)
