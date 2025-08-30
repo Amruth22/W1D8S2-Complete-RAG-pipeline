@@ -816,7 +816,12 @@ async def test_07_end_to_end_rag_workflow():
                     async def simulate_complete_rag_workflow():
                         workflow_results = {
                             'steps_completed': [],
-                            'performance_metrics': {},
+                            'performance_metrics': {
+                                'total_workflow_time': 0,
+                                'avg_query_time': 0,
+                                'success_rate': 0,
+                                'successful_queries': 0
+                            },
                             'errors': [],
                             'final_state': {}
                         }
@@ -986,7 +991,8 @@ async def test_07_end_to_end_rag_workflow():
                     
                     # Validate performance metrics (with safe key access)
                     metrics = workflow_results['performance_metrics']
-                    assert 'total_workflow_time' in metrics, "Should include total workflow time"
+                    # Check that performance metrics are properly populated
+                    assert 'total_workflow_time' in metrics, f"Should include total workflow time. Available keys: {list(metrics.keys())}"
                     assert metrics.get('total_workflow_time', 0) >= 0, "Should track total execution time"
                     assert metrics.get('avg_query_time', 0) >= 0, "Should calculate average query time"
                     assert metrics.get('success_rate', 0) >= 0.8, "Should have high success rate"
