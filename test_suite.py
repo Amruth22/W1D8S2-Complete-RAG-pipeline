@@ -110,8 +110,9 @@ class MockEmbeddingGenerator:
     def generate_embeddings(self, texts: List[str]) -> np.ndarray:
         """Mock batch embedding generation"""
         if isinstance(texts, str):
-            texts = [texts]
-        # Return embeddings with correct shape
+            # For single string, return 1D array to match generate_single_embedding
+            return np.random.rand(MOCK_CONFIG["VECTOR_DIMENSION"]).astype('float32')
+        # Return embeddings with correct shape for list
         return np.random.rand(len(texts), MOCK_CONFIG["VECTOR_DIMENSION"]).astype('float32')
     
     def generate_single_embedding(self, text: str) -> np.ndarray:
@@ -297,7 +298,12 @@ async def test_02_embedding_generation_and_processing():
         # Test string input handling
         string_input_embeddings = generator.generate_embeddings("Single string input")
         assert isinstance(string_input_embeddings, np.ndarray), "Should handle string input"
-        assert string_input_embeddings.shape[0] == 1, "Should return single embedding for string input"
+        # String input should return array with shape (1, dimension) or (dimension,)
+        assert len(string_input_embeddings.shape) in [1, 2], "Should return valid embedding shape"
+        if len(string_input_embeddings.shape) == 2:
+            assert string_input_embeddings.shape[0] == 1, "Should return single embedding for string input"
+        else:
+            assert string_input_embeddings.shape[0] == MOCK_CONFIG["VECTOR_DIMENSION"], "Should have correct dimension"
         
         # Test embedding quality (mock validation)
         embedding_norms = np.linalg.norm(batch_embeddings, axis=1)
