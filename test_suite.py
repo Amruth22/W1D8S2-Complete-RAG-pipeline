@@ -789,7 +789,7 @@ async def test_06_rag_pipeline_orchestration():
     print("PASS: Pipeline state management and statistics confirmed")
 
 @pytest.mark.asyncio
-async def test_07_end_to_end_rag_workflow():
+async def test_07_rag_query_processing_and_context_retrieval():
     """Test 7: End-to-End RAG Workflow and Integration Testing"""
     print("Running Test 7: End-to-End RAG Workflow and Integration Testing")
     
