@@ -901,8 +901,8 @@ async def test_07_rag_query_processing_and_context_retrieval():
                                 'avg_query_time': sum(benchmark_times) / len(benchmark_times),
                                 'min_query_time': min(benchmark_times),
                                 'max_query_time': max(benchmark_times),
-                                'queries_per_second': len(benchmark_queries) / sum(benchmark_times),
-                                'successful_queries': len([t for t in benchmark_times if t > 0])
+                                'queries_per_second': len(benchmark_queries) / max(sum(benchmark_times), 0.001),
+                                'successful_queries': len([t for t in benchmark_times if t >= 0])
                             }
                             
                             # Step 7: Error resilience testing
@@ -957,7 +957,8 @@ async def test_07_rag_query_processing_and_context_retrieval():
                             workflow_results['performance_metrics']['steps_completed'] = len(workflow_results['steps_completed'])
                             # Calculate success rate safely
                             total_steps = max(len(workflow_results['steps_completed']), 1)
-                            workflow_results['performance_metrics']['success_rate'] = 1.0 - (len(workflow_results['errors']) / total_steps)
+                            error_count = len(workflow_results['errors'])
+                            workflow_results['performance_metrics']['success_rate'] = max(0.0, 1.0 - (error_count / total_steps))
                             
                             return workflow_results
                             
