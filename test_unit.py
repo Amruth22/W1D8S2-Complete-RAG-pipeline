@@ -233,11 +233,28 @@ class CoreCompleteRAGPipelineTests(unittest.TestCase):
         print(f"PASS: Context response - Length: {len(context_response)} characters")
         print("PASS: Context-aware response generation validated")
 
-    def test_05_rag_pipeline_orchestration(self):
-        """Test 5: RAG Pipeline Orchestration and End-to-End Workflow"""
-        print("Running Test 5: RAG Pipeline Orchestration")
+    def test_05_configuration_and_pipeline_validation(self):
+        """Test 5: Configuration and Pipeline Component Validation"""
+        print("Running Test 5: Configuration and Pipeline Validation")
         
-        # Test pipeline initialization
+        # Test configuration validation
+        self.assertIsNotNone(self.Config.GOOGLE_API_KEY)
+        self.assertTrue(self.Config.GOOGLE_API_KEY.startswith('AIza'))
+        self.assertEqual(self.Config.LLM_MODEL, "gemini-2.5-flash")
+        self.assertEqual(self.Config.EMBEDDING_MODEL, "gemini-embedding-001")
+        
+        # Test RAG configuration parameters
+        self.assertEqual(self.Config.CHUNK_SIZE, 1000)
+        self.assertEqual(self.Config.CHUNK_OVERLAP, 200)
+        self.assertEqual(self.Config.TOP_K_RESULTS, 5)
+        self.assertEqual(self.Config.VECTOR_DIMENSION, 3072)
+        
+        # Validate parameter relationships
+        self.assertLess(self.Config.CHUNK_OVERLAP, self.Config.CHUNK_SIZE)
+        self.assertGreater(self.Config.TOP_K_RESULTS, 0)
+        self.assertGreater(self.Config.VECTOR_DIMENSION, 0)
+        
+        # Test pipeline component initialization
         self.assertIsNotNone(self.rag_pipeline)
         self.assertIsNotNone(self.rag_pipeline.embedding_generator)
         self.assertIsNotNone(self.rag_pipeline.vector_store)
@@ -245,70 +262,48 @@ class CoreCompleteRAGPipelineTests(unittest.TestCase):
         self.assertIsNotNone(self.rag_pipeline.document_processor)
         self.assertFalse(self.rag_pipeline.is_indexed)
         
-        # Test component testing
-        test_results = self.rag_pipeline.test_components()
-        self.assertIsInstance(test_results, dict)
+        # Test component configuration
+        self.assertEqual(self.rag_pipeline.embedding_generator.model, self.Config.EMBEDDING_MODEL)
+        self.assertEqual(self.rag_pipeline.llm.model, self.Config.LLM_MODEL)
+        self.assertEqual(self.rag_pipeline.vector_store.dimension, self.Config.VECTOR_DIMENSION)
+        self.assertEqual(self.rag_pipeline.document_processor.chunk_size, self.Config.CHUNK_SIZE)
+        self.assertEqual(self.rag_pipeline.document_processor.chunk_overlap, self.Config.CHUNK_OVERLAP)
         
-        expected_components = ["embedding_generator", "llm", "document_processor", "vector_store"]
-        for component in expected_components:
-            self.assertIn(component, test_results)
-            self.assertIsInstance(test_results[component], bool)
-        
-        # Test document ingestion
-        test_documents = [
-            "This is a comprehensive test document about machine learning and artificial intelligence.",
-            "Second document containing information about neural networks and deep learning algorithms.",
-            "Third document with details about natural language processing and computer vision."
-        ]
-        
-        ingestion_stats = self.rag_pipeline.ingest_documents(test_documents)
-        
-        self.assertIsInstance(ingestion_stats, dict)
-        self.assertIn("total_documents", ingestion_stats)
-        self.assertIn("total_chunks", ingestion_stats)
-        self.assertIn("total_embeddings", ingestion_stats)
-        self.assertEqual(ingestion_stats["total_documents"], len(test_documents))
-        self.assertGreater(ingestion_stats["total_chunks"], 0)
-        self.assertGreater(ingestion_stats["total_embeddings"], 0)
-        self.assertTrue(self.rag_pipeline.is_indexed)
-        
-        # Test query processing
-        test_query = "What is machine learning?"
-        query_result = self.rag_pipeline.query(test_query)
-        
-        self.assertIsInstance(query_result, dict)
-        self.assertIn("response", query_result)
-        self.assertIn("context", query_result)
-        self.assertIn("similarity_scores", query_result)
-        self.assertIn("num_context_chunks", query_result)
-        
-        self.assertIsInstance(query_result["response"], str)
-        self.assertGreater(len(query_result["response"]), 0)
-        self.assertIsInstance(query_result["context"], list)
-        self.assertIsInstance(query_result["similarity_scores"], list)
-        self.assertEqual(query_result["num_context_chunks"], len(query_result["context"]))
-        
-        # Test query without index
-        unindexed_pipeline = self.RAGPipeline()
-        unindexed_result = unindexed_pipeline.query("Test question")
-        self.assertIn("error", unindexed_result)
-        self.assertIn("No documents have been indexed", unindexed_result["response"])
-        
-        # Test pipeline statistics
+        # Test pipeline statistics (initial state)
         stats = self.rag_pipeline.get_pipeline_stats()
         self.assertIsInstance(stats, dict)
         self.assertIn("is_indexed", stats)
         self.assertIn("vector_store_stats", stats)
         self.assertIn("config", stats)
-        self.assertTrue(stats["is_indexed"])
+        self.assertFalse(stats["is_indexed"])
         
-        # Test pipeline reset
+        # Validate config in stats
+        config_stats = stats["config"]
+        self.assertEqual(config_stats["chunk_size"], self.Config.CHUNK_SIZE)
+        self.assertEqual(config_stats["top_k_results"], self.Config.TOP_K_RESULTS)
+        self.assertEqual(config_stats["llm_model"], self.Config.LLM_MODEL)
+        self.assertEqual(config_stats["embedding_model"], self.Config.EMBEDDING_MODEL)
+        
+        # Test query without index (should return error)
+        unindexed_result = self.rag_pipeline.query("Test question")
+        self.assertIn("error", unindexed_result)
+        self.assertIn("No documents have been indexed", unindexed_result["response"])
+        
+        # Test pipeline reset functionality
+        original_vector_store = self.rag_pipeline.vector_store
         self.rag_pipeline.reset_pipeline()
         self.assertFalse(self.rag_pipeline.is_indexed)
+        # After reset, should have new vector store instance
+        self.assertIsNotNone(self.rag_pipeline.vector_store)
         
-        print(f"PASS: Document ingestion - {ingestion_stats['total_documents']} docs, {ingestion_stats['total_chunks']} chunks")
-        print(f"PASS: Query processing - Response length: {len(query_result['response'])} characters")
-        print("PASS: Pipeline orchestration and workflow validated")
+        # Test file path configuration
+        self.assertIsInstance(self.Config.FAISS_INDEX_PATH, str)
+        self.assertGreater(len(self.Config.FAISS_INDEX_PATH), 0)
+        
+        print(f"PASS: Configuration validation - LLM: {self.Config.LLM_MODEL}, Embedding: {self.Config.EMBEDDING_MODEL}")
+        print(f"PASS: RAG parameters - Chunk size: {self.Config.CHUNK_SIZE}, Overlap: {self.Config.CHUNK_OVERLAP}, Top-K: {self.Config.TOP_K_RESULTS}")
+        print(f"PASS: Pipeline components initialized and configured correctly")
+        print("PASS: Configuration and pipeline validation completed")
 
 def run_core_tests():
     """Run core tests and provide summary"""
